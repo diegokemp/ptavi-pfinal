@@ -63,9 +63,9 @@ class SIPHandler(socketserver.DatagramRequestHandler):
 if __name__ == "__main__":
     try:
         configXML = sys.argv[1]
-        uacobj = uaclient(XML)
+        uacobj = uaclient(configXML)
         print(uacobj.listag)
-        serv = SIPHandler.socketserver.UDPServer(('', 3443), SIPHandler)
+        serv = socketserver.UDPServer(('', 3443), SIPHandler)
     except:
         print("Usage: python3 server.py IP port audio_file")
     print("Listening...")
