@@ -7,7 +7,7 @@ import sys
 from XMLHandler import XMLHandler
 #import os
 
-class uaclient():
+class uaserver():
 
     def __init__(self, fichero):
 
@@ -19,7 +19,7 @@ class uaclient():
         except FileNotFoundError:
             print("NO HAY FICHERO")
 
-        self.listag = cHandler.get_tags()
+        self.diccionario = cHandler.get_tags()
 
 
 class SIPHandler(socketserver.DatagramRequestHandler):
@@ -62,10 +62,12 @@ class SIPHandler(socketserver.DatagramRequestHandler):
 
 if __name__ == "__main__":
     try:
-        configXML = sys.argv[1]
-        uacobj = uaclient(configXML)
-        print(uacobj.listag)
-        serv = socketserver.UDPServer(('', 3443), SIPHandler)
+        XML = sys.argv[1]
+        uaobj = uaserver(XML)
+        print(uaobj.diccionario["rtport"])
+        servIP = uaobj.diccionario["uasip"]
+        servPort = uaobj.diccionario["uasport"]
+        serv = socketserver.UDPServer((servIP, int(servPort)), SIPHandler)
     except:
         print("Usage: python3 server.py IP port audio_file")
     print("Listening...")
