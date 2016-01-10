@@ -5,7 +5,7 @@ from xml.sax.handler import ContentHandler
 import socketserver
 import sys
 from XMLHandler import XMLHandler
-#import os
+# import os
 
 class uaserver():
 
@@ -52,7 +52,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                         # exe = "./mp32rtp -i " + IP_Client
                         # exe = exe + " -p " + portaudio + " < " + audio_file
                         # os.system(exe)
-                        pass
+                        print("enviando audio----------------")
                     elif method[0]=="BYE":
                         self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
                 else:
