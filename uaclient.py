@@ -27,15 +27,17 @@ if __name__ == "__main__":
     opcion = sys.argv[3]
     uaobj = uaclient(XML)
     rtport = uaobj.diccionario["rtport"]
+    usr = uaobj.diccionario["username"]
+    servport = uaobj.diccionario["uasport"]
 
     if METODO == "REGISTER":
-        mensaje = "REGISTER sip:leonard@bigbang.org:1234 SIP/2.0\r\n" + \
+        mensaje = "REGISTER sip:" + usr + ":" + uasport + " SIP/2.0\r\n" + \
                     "Expires: " + opcion
         print(mensaje)
     elif METODO == "INVITE":
         mensaje = "INVITE sip:" + opcion + " SIP/2.0\r\n" + \
                     "Content-Type: application/sdp\r\n\r\n" + \
-                    "v=0\r\n" + "o=leonard@bigbang.org 127.0.0.1\r\n" + \
+                    "v=0\r\n" + "o=" + usr + " 127.0.0.1\r\n" + \
                     "s=misesion\r\n" + "t=0\r\n" + "m=audio " + rtport + " RTP"
         print(mensaje)
     elif METODO == "BYE":
@@ -65,7 +67,8 @@ if __name__ == "__main__":
                     if serv_resp[5] == "200":
                         print("200 concatenado")
                         #sdp(sacar puerto rtp)
-                        #ACK
+                        ack = "ACK sip:" + opcion + " SIP/2.0\r\n"
+                        my_socket.send(bytes(ack, 'utf-8') + b'\r\n')
             elif serv_resp[1] == "200":
                 print("------CLOSE------")
                 i = 2
@@ -74,7 +77,7 @@ if __name__ == "__main__":
                 i = 2
             elif serv_resp[1] == "401":
                 reauten = mensaje + "\r\n" + \
-                            "Authorization: response=1232132123211223213212"
+                            "Authorization: response=1234"
             elif serv_resp[1] == "404":
                 i = 2
             elif serv_resp[1] == "405":
