@@ -18,15 +18,15 @@ class uaclient():
         except FileNotFoundError:
             print("NO HAY FICHERO")
 
-        self.listag = cHandler.get_tags()
+        self.diccionario = cHandler.get_tags()
 
 if __name__ == "__main__":
 
     XML = sys.argv[1]
     METODO = sys.argv[2]
     opcion = sys.argv[3]
-    uacobj = uaclient(XML)
-    print(uacobj.listag)
+    uaobj = uaclient(XML)
+    rtport = uaobj.diccionario["rtport"]
 
     if METODO == "REGISTER":
         mensaje = "REGISTER sip:leonard@bigbang.org:1234 SIP/2.0\r\n" + \
@@ -36,16 +36,18 @@ if __name__ == "__main__":
         mensaje = "INVITE sip:" + opcion + " SIP/2.0\r\n" + \
                     "Content-Type: application/sdp\r\n\r\n" + \
                     "v=0\r\n" + "o=leonard@bigbang.org 127.0.0.1\r\n" + \
-                    "s=misesion\r\n" + "t=0\r\n" + "m=audio 34543 RTP"
+                    "s=misesion\r\n" + "t=0\r\n" + "m=audio " + rtport + " RTP"
         print(mensaje)
     elif METODO == "BYE":
         mensaje = "BYE sip:" + opcion + "SIP/2.0\r\n"
         print(mensaje)
 
-    IP = "127.0.0.1"
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    my_socket.connect((IP, 3443))
+    proxyIP = uaobj.diccionario["proxyip"]
+    proxyPort = uaobj.diccionario["proxyport"]
+    print(proxyIP + proxyPort)
+    my_socket.connect(("127.0.0.1", 3000))#puerto proxy
 
     my_socket.send(bytes(mensaje, 'utf-8') + b'\r\n')
     i=0
@@ -62,10 +64,12 @@ if __name__ == "__main__":
                     print("180--")
                     if serv_resp[5] == "200":
                         print("200 concatenado")
+                        #sdp(sacar puerto rtp)
+                        #ACK
             elif serv_resp[1] == "200":
-                pass
-                print("BIENNNN")
-                #send[invite//ack//cierre]?¿?¿?¿
+                print("------CLOSE------")
+                i = 2
+                #ok al reg o al bye
             elif serv_resp[1] == "400":
                 i = 2
             elif serv_resp[1] == "401":
@@ -74,6 +78,8 @@ if __name__ == "__main__":
             elif serv_resp[1] == "404":
                 i = 2
             elif serv_resp[1] == "405":
+                i = 2
+            else:
                 i = 2
     my_socket.close()
     print("THE END")
