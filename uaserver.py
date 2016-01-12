@@ -35,6 +35,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                 metodos = ["INVITE","BYE","ACK"]
                 if method[0] in metodos:
                     if method[0]=="INVITE":
+                        print("invite--")
                         try:
                             portaudio = lineutf.split("m=audio ")
                             portaudio = portaudio[1].split(" ")
@@ -44,6 +45,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                         except:
                             self.wfile.write(b"SIP/2.0 400 Bad Request\r\n\r\n")
                             break
+                        print("ok--conca")
                         self.wfile.write(b"SIP/2.0 100 Trying\r\n\r\n")
                         self.wfile.write(b"SIP/2.0 180 Ring\r\n\r\n")
                         self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
