@@ -40,12 +40,16 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                             portaudio = portaudio[1].split(" ")
                             portaudio = portaudio[0]
                             print(portaudio)
+                            #a quien enviar rtp
                         except:
                             self.wfile.write(b"SIP/2.0 400 Bad Request\r\n\r\n")
                             break
                         self.wfile.write(b"SIP/2.0 100 Trying\r\n\r\n")
                         self.wfile.write(b"SIP/2.0 180 Ring\r\n\r\n")
                         self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
+                        print(self.diccionario["rtport"])
+                        #usrname/uaserverip/rtport
+                        #recibir rtp
                         #sdpok
                     elif method[0]=="ACK":
                         # os.system("chmod +x mp32rtp")
@@ -67,6 +71,7 @@ if __name__ == "__main__":
         print(uaobj.diccionario["rtport"])
         servIP = uaobj.diccionario["uasip"]
         servPort = uaobj.diccionario["uasport"]
+        SIPHandler.diccionario = uaobj.diccionario
         serv = socketserver.UDPServer((servIP, int(servPort)), SIPHandler)
     except:
         print("Usage: python3 server.py IP port audio_file")
