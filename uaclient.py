@@ -49,7 +49,7 @@ if __name__ == "__main__":
     proxyIP = uaobj.diccionario["proxyip"]
     proxyPort = uaobj.diccionario["proxyport"]
     print(proxyIP + proxyPort)
-    my_socket.connect(("127.0.0.1", 4000))#puerto proxy
+    my_socket.connect(("127.0.0.1", int(proxyPort)))#puerto proxy
 
     my_socket.send(bytes(mensaje, 'utf-8') + b'\r\n')
     i=0
