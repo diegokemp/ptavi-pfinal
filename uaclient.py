@@ -31,7 +31,7 @@ if __name__ == "__main__":
     servport = uaobj.diccionario["uasport"]
 
     if METODO == "REGISTER":
-        mensaje = "REGISTER sip:" + usr + ":" + uasport + " SIP/2.0\r\n" + \
+        mensaje = "REGISTER sip:" + usr + ":" + servport + " SIP/2.0\r\n" + \
                     "Expires: " + opcion
         print(mensaje)
     elif METODO == "INVITE":
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     proxyIP = uaobj.diccionario["proxyip"]
     proxyPort = uaobj.diccionario["proxyport"]
     print(proxyIP + proxyPort)
-    my_socket.connect(("127.0.0.1", 3000))#puerto proxy
+    my_socket.connect(("127.0.0.1", 4000))#puerto proxy
 
     my_socket.send(bytes(mensaje, 'utf-8') + b'\r\n')
     i=0
@@ -66,6 +66,7 @@ if __name__ == "__main__":
                     print("180--")
                     if serv_resp[5] == "200":
                         print("200 concatenado")
+                        i = 2
                         #sdp(sacar puerto rtp)
                         ack = "ACK sip:" + opcion + " SIP/2.0\r\n"
                         my_socket.send(bytes(ack, 'utf-8') + b'\r\n')
@@ -78,6 +79,8 @@ if __name__ == "__main__":
             elif serv_resp[1] == "401":
                 reauten = mensaje + "\r\n" + \
                             "Authorization: response=1234"
+                my_socket.send(bytes(reauten, 'utf-8') + b'\r\n')
+                print("reautentificando")
             elif serv_resp[1] == "404":
                 i = 2
             elif serv_resp[1] == "405":
