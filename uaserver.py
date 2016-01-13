@@ -46,6 +46,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                             self.wfile.write(b"SIP/2.0 400 Bad Request\r\n\r\n")
                             break
                         print("ok--conca")
+                        print(self.client_address[1])
                         self.wfile.write(b"SIP/2.0 100 Trying\r\n\r\n")
                         self.wfile.write(b"SIP/2.0 180 Ring\r\n\r\n")
                         self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
@@ -60,7 +61,9 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                         # os.system(exe)
                         print("enviando audio----------------")
                     elif method[0]=="BYE":
+                        print(self.client_address[1])
                         self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
+                        print("ok enviado--")
                 else:
                     self.wfile.write(b"SIP/2.0 405 Method Not Allowed\r\n\r\n")
             if not line:
