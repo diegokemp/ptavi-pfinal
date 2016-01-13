@@ -5,6 +5,7 @@ from xml.sax.handler import ContentHandler
 import socket
 import sys
 from XMLHandler import XMLHandler
+import hashlib
 
 class uaclient():
 
@@ -41,7 +42,7 @@ if __name__ == "__main__":
                     "s=misesion\r\n" + "t=0\r\n" + "m=audio " + rtport + " RTP"
         print(mensaje)
     elif METODO == "BYE":
-        mensaje = "BYE sip:" + opcion + "SIP/2.0\r\n"
+        mensaje = "BYE sip:" + opcion + " SIP/2.0"
         print(mensaje)
 
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -77,8 +78,16 @@ if __name__ == "__main__":
             elif serv_resp[1] == "400":
                 i = 2
             elif serv_resp[1] == "401":
+                nonce = respuesta.split("nonce=")
+                nonce = nonce[1]
+                passwd = uaobj.diccionario["passwd"]
+                passwdb = (bytes(passwd, 'utf-8'))
+                nonceb = (bytes(nonce, 'utf-8'))
+                m = hashlib.md5()
+                m.update(passwdb + nonceb)
+                response = m.hexdigest()
                 reauten = mensaje + "\r\n" + \
-                            "Authorization: response=1234"
+                            "Authorization: response=" + response
                 my_socket.send(bytes(reauten, 'utf-8') + b'\r\n')
                 print("reautentificando")
             elif serv_resp[1] == "404":
