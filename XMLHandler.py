@@ -24,6 +24,13 @@ class XMLHandler(ContentHandler):
             self.diccionario["logpath"] = attrs.get("path","")
         elif etiqueta == 'audio':
             self.diccionario["mp3path"] = attrs.get("path","")
+        elif etiqueta =='server':
+            self.diccionario["servname"] = attrs.get("name","")
+            self.diccionario["servip"] = attrs.get("ip","")
+            self.diccionario["servport"] = attrs.get("puerto","")
+        elif etiqueta == 'database':
+            self.diccionario["datapath"] = attrs.get("path","")
+            self.diccionario["datapass"] = attrs.get("passwdpath","")
 
     def get_tags(self):
         return self.diccionario
