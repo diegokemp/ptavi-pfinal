@@ -1,5 +1,5 @@
 <config>
-  <server name="MiServidorProxy" ip="127.0.0.1" puerto="3030"/>
-  <database path="registered.json" passwdpath="passwdpath.json"/>
+  <server name="MiServidorProxy" ip="127.0.0.1" puerto="9002"/>
+  <database path="registered.json" passwdpath="passwords.json"/>
   <log path="logpr.txt"/>
 </config>
