@@ -1,13 +1,16 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
 import socket
 import socketserver
 import sys
-from XMLHandler import XMLHandler
+from uaserver import XMLHandler
 import time
 import json
 import random
 import hashlib
+import os
 
 
 class proxyxml():
@@ -29,13 +32,28 @@ class ProxySIPHandler(socketserver.DatagramRequestHandler):
     dicc = {}
     diccpass = {}
 
+    def rand(self):
+        rand = str(random.randint(100000000000000, 999999999999999))
+        return rand
+
+    def hora_actual(self):
+        hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
+        return hora
+
     def json2passwd(self, archivojson):
         archivo = open(archivojson, "r")
         self.diccpass = json.load(archivo)
 
     def json2registered(self, archivojson):
-        archivo2 = open(archivojson, "r")
+        if os.path.exists(archivojson):
+            archivo2 = open(archivojson, "r")
+        else:
+            archivo2 = open(archivojson, "w")
+            archivo2.write("{}")
+            archivo2.close()
+            archivo2 = open(archivojson, "r")
         self.dicc = json.load(archivo2)
+        archivo2.close()
 
     def caduca(self, actual):
         dicc2 = self.dicc.copy()
@@ -47,14 +65,16 @@ class ProxySIPHandler(socketserver.DatagramRequestHandler):
     def register2json(self, nombre):
         archivo = open(nombre, "w")
         datjson = json.dump(self.dicc, archivo)
+        archivo.close()
 
     def passwd2json(self, nombre):
         archivo = open(nombre, "w")
         datjson2 = json.dump(self.diccpass, archivo)
+        archivo.close()
 
     def handle(self):
-        archivojson = self.diccionario["datapath"]
         archivopass = self.diccionario["datapass"]
+        archivojson = self.diccionario["datapath"]
         self.json2registered(archivojson)
         self.json2passwd(archivopass)
         curr = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
@@ -70,13 +90,19 @@ class ProxySIPHandler(socketserver.DatagramRequestHandler):
                     tracker = lineutf.split("Expires: ")
                     tracker = tracker[1].split("\r\n")
                     expires = tracker[0]
-                    exp = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time() + float(expires)))
+                    e = float(expires)
+                    exp = time.strftime('%Y-%m-%d %H:%M:%S',
+                                        time.localtime(time.time() + e))
                     emi_usr = lineutf.split(":")
+                    emi_port = emi_usr[2].split(" ")
+                    emi_port = emi_port[0]
+                    # portemireg
                     emi_usr = emi_usr[1]
-                    hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
+                    # diremireg
+                    hora = self.hora_actual()
                     logmen = "Received from " + "127.0.0.1" + \
-                            ":" + str(self.client_address[1]) + ": " + \
-                            lineutf.replace("\r\n", " ")
+                             ":" + str(self.client_address[1]) + ": " + \
+                             lineutf.replace("\r\n", " ")
                     log.write(hora + " " + logmen + "\n")
                     if expires != "0":
                         # quiere registrarse
@@ -94,7 +120,7 @@ class ProxySIPHandler(socketserver.DatagramRequestHandler):
                             m = hashlib.md5()
                             m.update(passwdb + nonceb)
                             response2 = m.hexdigest()
-                            # comparamos el response que recib y el que creamos
+                            # comparamos el response que recib y el que crea
                             if response == response2:
                                 print("->Register autorizado")
 
@@ -112,18 +138,19 @@ class ProxySIPHandler(socketserver.DatagramRequestHandler):
                         else:
                             print("->Register no autorizado")
                             print("    Creando nonce para este ua...")
-                            self.diccpass[emi_usr][0] = str(random.randint(100000000000000, 999999999999999))
+                            self.diccpass[emi_usr][0] = self.rand()
                             self.passwd2json(archivopass)
                             # guardamos el nonce por @ en pass
                             nonce = self.diccpass[emi_usr][0]
                             register_resp = "SIP/2.0 401 Unauthorized\r\n" + \
-                                        "WWW Authenticate: nonce=" + nonce
+                                            "WWW Authenticate: Digest " + \
+                                            "nonce=" + nonce
                             print("->Enviando 401 Unauthorized")
                         self.wfile.write(bytes(register_resp, 'utf-8'))
-                        hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
+                        hora = self.hora_actual()
                         logmen = "Send to " + "127.0.0.1" + \
-                                ":" + self.dicc[emi_usr][0] + ": " + \
-                                register_resp.replace("\r\n", " ")
+                                 ":" + emi_port + ": " + \
+                                 register_resp.replace("\r\n", " ")
                         log.write(hora + " " + logmen + "\n")
                     else:
                         del self.dicc[emi_usr]
@@ -132,82 +159,103 @@ class ProxySIPHandler(socketserver.DatagramRequestHandler):
 
                 elif method[0] == "INVITE":
                     print("->Recibido: INVITE")
-                    hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
+                    hora = self.hora_actual()
                     logmen = "Received from " + "127.0.0.1" + \
-                            ":" + str(self.client_address[1]) + ": " + \
-                            lineutf.replace("\r\n", " ")
+                             ":" + str(self.client_address[1]) + ": " + \
+                             lineutf.replace("\r\n", " ")
                     log.write(hora + " " + logmen + "\n")
                     isregistered = lineutf.split("o=")
                     isregistered = isregistered[1].split(" ")
                     isregistered = isregistered[0]
-                    for key in self.dicc.keys():
-                        if key == isregistered:
-                            print("    Usuario encontrado")
-                            emi_port = self.dicc[key][0]
-                            # puerto origen
-                            rec_usr = lineutf.split(":")
-                            rec_usr = rec_usr[1].split(" ")
-                            rec_usr = rec_usr[0]
+                    if isregistered in self.dicc.keys():
+                        emi_port = self.dicc[isregistered][0]
+
+                        rec_usr = lineutf.split(":")
+                        rec_usr = rec_usr[1].split(" ")
+                        rec_usr = rec_usr[0]
+                        if rec_usr in self.dicc.keys():
+                            print("receptor encontrado")
                             rec_port = self.dicc[rec_usr][0]
                             # puertobuscar por @
                             mensaje = lineutf
                             print("->Enviando INVITE")
                             my_socket.connect(("127.0.0.1", int(rec_port)))
                             my_socket.send(bytes(mensaje, 'utf-8') + b'\r\n')
-                            hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
+                            hora = self.hora_actual()
                             logmen = "Send to " + "127.0.0.1" + \
-                                    ":" + rec_port + ": " + \
-                                    mensaje.replace("\r\n", " ")
+                                     ":" + rec_port + ": " + \
+                                     mensaje.replace("\r\n", " ")
                             log.write(hora + " " + logmen + "\n")
                             print("    Esperando respuesta...")
-                            data = my_socket.recv(1024)
-                            respuesta = data.decode('utf-8')
-                            resp = respuesta.split(" ")
-                            if resp[1] == "100":
-                                print("->Recibido: 100 Trying")
-                                if resp[3] == "180":
+                            resp = []
+                            try:
+                                data = my_socket.recv(1024)
+                                respuesta = data.decode('utf-8')
+                                resp = respuesta.split(" ")
+                            except ConnectionRefusedError:
+                                print("conection refuse")
+                                conxrefuse = "SIP/2.0 404 User Not Found\r\n"
+                                self.wfile.write(bytes(conxrefuse, 'utf-8'))
+                                hora = self.hora_actual()
+                                logmen = "Send to " + "127.0.0.1" + \
+                                         ":" + emi_port + ": " + \
+                                         conxrefuse.replace("\r\n", " ")
+                                log.write(hora + " " + logmen + "\n")
+
+                            if len(resp) > 1:
+                                if resp[1] == "100" and resp[3] == "180":
+                                    print("->Recibido: 100 Trying")
                                     print("->Recibido: 180 Ring")
                                     if resp[5] == "200":
                                         print("->Recibido: 200 OK")
-                                        hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
-                                        logmen = "Received from " + "127.0.0.1" + \
-                                                ":" + rec_port + ": " + \
-                                                respuesta.replace("\r\n", " ")
+                                        hora = self.hora_actual()
+                                        logmen = "Received from " + \
+                                                 "127.0.0.1" + \
+                                                 ":" + rec_port + ": " + \
+                                                 respuesta.replace("\r\n", " ")
                                         log.write(hora + " " + logmen + "\n")
-                                        mensaje = respuesta
+                                        mens = respuesta
                                         print("->Enviando 100 180 200+sdp")
-                                        self.wfile.write(bytes(mensaje, 'utf-8'))
-                                        hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
+                                        self.wfile.write(bytes(mens, 'utf-8'))
+                                        hora = self.hora_actual()
                                         logmen = "Send to " + "127.0.0.1" + \
-                                                ":" + emi_port + ": " + \
-                                                respuesta.replace("\r\n", " ")
+                                                 ":" + emi_port + ": " + \
+                                                 respuesta.replace("\r\n", " ")
                                         log.write(hora + " " + logmen + "\n")
-
+                        else:
+                            print("receptor no encontrado")
+                            usr_nf = "SIP/2.0 404 User Not Found\r\n"
+                            self.wfile.write(bytes(usr_nf, 'utf-8'))
+                            hora = self.hora_actual()
+                            logmen = "Send to " + "127.0.0.1" + \
+                                     ":" + emi_port + ": " + \
+                                     usr_nf.replace("\r\n", " ")
+                            log.write(hora + " " + logmen + "\n")
                 elif method[0] == "ACK":
                     print("Recibido: ACK")
                     rec_usr = lineutf.split(":")
                     rec_usr = rec_usr[1].split(" ")
                     rec_usr = rec_usr[0]
                     rec_port = self.dicc[rec_usr][0]
-                    hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
+                    hora = self.hora_actual()
                     logmen = "Received from " + "127.0.0.1" + \
-                            ":" + str(self.client_address[1]) + ": " + \
-                            lineutf.replace("\r\n", " ")
+                             ":" + str(self.client_address[1]) + ": " + \
+                             lineutf.replace("\r\n", " ")
                     log.write(hora + " " + logmen + "\n")
                     mensaje = lineutf
                     print("->Enviando ACK")
                     my_socket.send(bytes(mensaje, 'utf-8') + b'\r\n')
-                    hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
+                    hora = self.hora_actual()
                     logmen = "Send to " + "127.0.0.1" + \
-                            ":" + rec_port + ": " + \
-                            mensaje.replace("\r\n", " ")
+                             ":" + rec_port + ": " + \
+                             mensaje.replace("\r\n", " ")
                     log.write(hora + " " + logmen + "\n")
                 elif method[0] == "BYE":
                     print("Recibido: BYE")
-                    hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
+                    hora = self.hora_actual()
                     logmen = "Received from " + "127.0.0.1" + \
-                            ":" + str(self.client_address[1]) + ": " + \
-                            lineutf.replace("\r\n", " ")
+                             ":" + str(self.client_address[1]) + ": " + \
+                             lineutf.replace("\r\n", " ")
                     log.write(hora + " " + logmen + "\n")
                     rec_usr = lineutf.split(":")
                     rec_usr = rec_usr[1].split(" ")
@@ -217,10 +265,10 @@ class ProxySIPHandler(socketserver.DatagramRequestHandler):
                     print("->Enviando BYE")
                     my_socket.connect(("127.0.0.1", int(rec_port)))
                     my_socket.send(bytes(mensaje, 'utf-8') + b'\r\n')
-                    hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
+                    hora = self.hora_actual()
                     logmen = "Send to " + "127.0.0.1" + \
-                            ":" + rec_port + ": " + \
-                            mensaje.replace("\r\n", " ")
+                             ":" + rec_port + ": " + \
+                             mensaje.replace("\r\n", " ")
                     log.write(hora + " " + logmen + "\n")
                     print("    Esperando respuesta...")
                     data = my_socket.recv(1024)
@@ -231,17 +279,17 @@ class ProxySIPHandler(socketserver.DatagramRequestHandler):
                     respbye = respubye.split(" ")
                     if respbye[1] == "200":
                         print("->Recibido 200 OK")
-                        hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
+                        hora = self.hora_actual()
                         logmen = "Received from " + "127.0.0.1" + \
-                                ":" + str(self.client_address[1]) + ": " + \
-                                respubye.replace("\r\n", " ")
+                                 ":" + str(self.client_address[1]) + ": " + \
+                                 respubye.replace("\r\n", " ")
                         log.write(hora + " " + logmen + "\n")
                         print("->Enviando 200 OK")
                         self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
-                        hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
+                        hora = self.hora_actual()
                         logmen = "Send to " + "127.0.0.1" + \
-                                ":" + rec_port + ": " + \
-                                respubye.replace("\r\n", " ")
+                                 ":" + rec_port + ": " + \
+                                 respubye.replace("\r\n", " ")
                         log.write(hora + " " + logmen + "\n")
                 else:
                     print("---->> " + lineutf)
