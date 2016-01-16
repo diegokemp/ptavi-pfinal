@@ -4,9 +4,10 @@ from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
 import socket
 import sys
-from XMLHandler import XMLHandler
+from uaserver import XMLHandler
 import hashlib
 import time
+import os
 
 
 class uaclient():
@@ -27,8 +28,11 @@ if __name__ == "__main__":
 
     try:
         XML = sys.argv[1]
+        print(XML)
         METODO = sys.argv[2]
+        print(METODO)
         opcion = sys.argv[3]
+        print(opcion)
     except:
         print("Usage: python3 uaclient.py <config.xml> method option")
     uaobj = uaclient(XML)
@@ -43,13 +47,13 @@ if __name__ == "__main__":
 
     if METODO == "REGISTER":
         mensaje = "REGISTER sip:" + usr + ":" + servport + " SIP/2.0\r\n" + \
-                    "Expires: " + opcion
+                  "Expires: " + opcion
         print("->Enviando: \r\n" + mensaje)
     elif METODO == "INVITE":
         mensaje = "INVITE sip:" + opcion + " SIP/2.0\r\n" + \
-                    "Content-Type: application/sdp\r\n\r\n" + \
-                    "v=0\r\n" + "o=" + usr + " 127.0.0.1\r\n" + \
-                    "s=misesion\r\n" + "t=0\r\n" + "m=audio " + rtport + " RTP"
+                  "Content-Type: application/sdp\r\n\r\n" + \
+                  "v=0\r\n" + "o=" + usr + " 127.0.0.1\r\n" + \
+                  "s=misesion\r\n" + "t=0\r\n" + "m=audio " + rtport + " RTP"
         print("->Enviando: \r\n" + mensaje)
     elif METODO == "BYE":
         mensaje = "BYE sip:" + opcion + " SIP/2.0"
@@ -64,8 +68,8 @@ if __name__ == "__main__":
     my_socket.send(bytes(mensaje, 'utf-8') + b'\r\n')
     hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
     logmen = "Send to " + "127.0.0.1" + \
-            ":" + uaobj.diccionario["proxyport"] + ": " + \
-            mensaje.replace("\r\n", " ")
+             ":" + uaobj.diccionario["proxyport"] + ": " + \
+             mensaje.replace("\r\n", " ")
     log.write(hora + " " + logmen + "\n")
     i = 0
     while i < 1:
@@ -79,50 +83,65 @@ if __name__ == "__main__":
                     print("->Recibido 180 Ring")
                     if serv_resp[5] == "200":
                         print("->Recibido 200 OK + sdp")
-                        hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
+                        hora = time.strftime('%Y%m%d%H%M%S',
+                                             time.localtime(time.time()))
                         logmen = "Received from " + "127.0.0.1" + \
-                                ":" + proxyPort + ": " + \
-                                respuesta.replace("\r\n", " ")
+                                 ":" + proxyPort + ": " + \
+                                 respuesta.replace("\r\n", " ")
                         log.write(hora + " " + logmen + "\n")
+
+                        portaudio = respuesta.split("m=audio ")
+                        portaudio = portaudio[1].split(" ")
+                        portaudio = portaudio[0]
                         # sdp(sacar puerto rtp)
+                        audio_file = uaobj.diccionario["mp3path"]
+
+                        exe = "cvlc rtp://" + "127.0.0.1:" + \
+                              rtport + " 2> /dev/null &"
+                        print("cvlc...")
+                        os.system(exe)
+
                         ack = "ACK sip:" + opcion + " SIP/2.0\r\n"
                         my_socket.send(bytes(ack, 'utf-8') + b'\r\n')
-                        hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
+                        hora = time.strftime('%Y%m%d%H%M%S',
+                                             time.localtime(time.time()))
                         logmen = "Send to " + "127.0.0.1" + \
-                                ":" + uaobj.diccionario["proxyport"] + ": " + \
-                                ack.replace("\r\n", " ")
+                                 ":" + uaobj.diccionario["proxyport"] + \
+                                 ": " + ack.replace("\r\n", " ")
                         log.write(hora + " " + logmen + "\n")
 
-                        # audio = my_socket.recv(1024)
+                        os.system("chmod +x mp32rtp")
+                        exe = "./mp32rtp -i " + "127.0.0.1"
+                        exe = exe + " -p " + portaudio + " < " + audio_file
+                        os.system(exe)
 
-                        # os.system("chmod +x mp32rtp")
-                        # exe = "./mp32rtp -i " + "127.0.0.1"
-                        # exe = exe + " -p " + portaudio + " < " + audio_file
-                        # os.system(exe)
                         i = 2
             elif serv_resp[1] == "200":
                 print("->Recibido 200 OK")
-                hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
+                hora = time.strftime('%Y%m%d%H%M%S',
+                                     time.localtime(time.time()))
                 logmen = "Received from " + "127.0.0.1" + \
-                        ":" + proxyPort + ": " + \
-                        respuesta.replace("\r\n", " ")
+                         ":" + proxyPort + ": " + \
+                         respuesta.replace("\r\n", " ")
                 log.write(hora + " " + logmen + "\n")
                 i = 2
                 # ok al reg o al bye
             elif serv_resp[1] == "400":
                 print("->Recibido 400 Bad Request")
-                hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
+                hora = time.strftime('%Y%m%d%H%M%S',
+                                     time.localtime(time.time()))
                 logmen = "Received from " + "127.0.0.1" + \
-                        ":" + proxyPort + ": " + \
-                        respuesta.replace("\r\n", " ")
+                         ":" + proxyPort + ": " + \
+                         respuesta.replace("\r\n", " ")
                 log.write(hora + " " + logmen + "\n")
                 i = 2
             elif serv_resp[1] == "401":
                 print("->Recibido 401 Unauthorized")
-                hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
+                hora = time.strftime('%Y%m%d%H%M%S',
+                                     time.localtime(time.time()))
                 logmen = "Received from " + "127.0.0.1" + \
-                        ":" + proxyPort + ": " + \
-                        respuesta.replace("\r\n", " ")
+                         ":" + proxyPort + ": " + \
+                         respuesta.replace("\r\n", " ")
                 log.write(hora + " " + logmen + "\n")
                 nonce = respuesta.split("nonce=")
                 nonce = nonce[1]
@@ -135,27 +154,30 @@ if __name__ == "__main__":
                 response = m.hexdigest()
                 print("->Enviando REGISTER + response")
                 reauten = mensaje + "\r\n" + \
-                            "Authorization: response=" + response
+                    "Authorization: Digest response=" + response
                 my_socket.send(bytes(reauten, 'utf-8') + b'\r\n')
-                hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
+                hora = time.strftime('%Y%m%d%H%M%S',
+                                     time.localtime(time.time()))
                 logmen = "Send to " + "127.0.0.1" + \
-                        ":" + uaobj.diccionario["proxyport"] + ": " + \
-                        reauten.replace("\r\n", " ")
+                         ":" + uaobj.diccionario["proxyport"] + ": " + \
+                         reauten.replace("\r\n", " ")
                 log.write(hora + " " + logmen + "\n")
             elif serv_resp[1] == "404":
                 print("->Recibido 404 User Not Found")
-                hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
+                hora = time.strftime('%Y%m%d%H%M%S',
+                                     time.localtime(time.time()))
                 logmen = "Received from " + "127.0.0.1" + \
-                        ":" + proxyPort + ": " + \
-                        respuesta.replace("\r\n", " ")
+                         ":" + proxyPort + ": " + \
+                         respuesta.replace("\r\n", " ")
                 log.write(hora + " " + logmen + "\n")
                 i = 2
             elif serv_resp[1] == "405":
                 print("->Recibido 405 Method Not Allowed")
-                hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
+                hora = time.strftime('%Y%m%d%H%M%S',
+                                     time.localtime(time.time()))
                 logmen = "Received from " + "127.0.0.1" + \
-                        ":" + proxyPort + ": " + \
-                        respuesta.replace("\r\n", " ")
+                         ":" + proxyPort + ": " + \
+                         respuesta.replace("\r\n", " ")
                 log.write(hora + " " + logmen + "\n")
                 i = 2
             else:
@@ -164,6 +186,6 @@ if __name__ == "__main__":
     hora = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
     logmen = "Finishing."
     log.write(hora + " " + logmen + "\n")
-
+    log.close()
     my_socket.close()
     print("--CLOSE--")
