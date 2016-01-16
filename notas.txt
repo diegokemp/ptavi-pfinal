@@ -1,0 +1,1 @@
+Reestablecer usuarios conectados: al iniciar el proxy_registrar se importa el contenido del .json rellenando asi el diccionario de usuarios registrados en ese momento(si no hubiera .json, lo crearia)
