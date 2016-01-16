@@ -149,11 +149,18 @@ class ProxySIPHandler(socketserver.DatagramRequestHandler):
                         self.wfile.write(bytes(register_resp, 'utf-8'))
                         hora = self.hora_actual()
                         logmen = "Send to " + "127.0.0.1" + \
-                                 ":" + emi_port + ": " + \
+                                 ":" + str(self.client_address[1]) + ": " + \
                                  register_resp.replace("\r\n", " ")
                         log.write(hora + " " + logmen + "\n")
                     else:
                         del self.dicc[emi_usr]
+                        mensaje = "SIP/2.0 200 OK\r\n"
+                        self.wfile.write(bytes(mensaje, 'utf-8'))
+                        hora = self.hora_actual()
+                        logmen = "Send to " + "127.0.0.1" + \
+                                 ":" + str(self.client_address[1]) + ": " + \
+                                 mensaje.replace("\r\n", " ")
+                        log.write(hora + " " + logmen + "\n")
                         self.register2json(archivojson)
                         print("->Usuario borrado(expires = 0)")
 
